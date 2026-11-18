@@ -24,6 +24,34 @@ struct StatusItemView: View {
         )
 
         return HStack(spacing: 4) {
+            if let level = model.volumeFlash {
+                Image(systemName: volumeSymbol(level))
+                    .font(.system(size: 13, weight: .semibold))
+                Text("\(level)%")
+                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+            } else {
+                trackContent(displayOptions)
+            }
+        }
+    }
+
+    private func volumeSymbol(_ level: Int) -> String {
+        switch level {
+        case 0: return "speaker.slash.fill"
+        case ..<34: return "speaker.wave.1.fill"
+        case ..<67: return "speaker.wave.2.fill"
+        default: return "speaker.wave.3.fill"
+        }
+    }
+
+    @ViewBuilder
+    private func trackContent(_ displayOptions: StatusItemModel.DisplayOptions) -> some View {
+            if model.pausedForCall {
+                Image(systemName: "phone.fill")
+                    .font(.system(size: 12))
+                    .help("Paused for a call")
+            }
+
             if displayOptions.showIcon {
                 Image(model.playerIconName)
                     .renderingMode(.template)
@@ -69,10 +97,10 @@ struct StatusItemView: View {
                 }
 
             }
-        }
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     let model = StatusItemModel()
     model.artist = "test"
@@ -96,3 +124,4 @@ struct StatusItemView: View {
         playbackModel: playbackModel
     )
 }
+#endif

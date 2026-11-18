@@ -213,6 +213,7 @@ struct MenuBarPreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     MenuBarPreferencesView(
         model: MenuBarPreferencesModel(),
@@ -222,3 +223,4 @@ struct MenuBarPreferencesView: View {
         musicPlayerPreferencesModel: MusicPlayerPreferencesModel()
     )
 }
+#endif

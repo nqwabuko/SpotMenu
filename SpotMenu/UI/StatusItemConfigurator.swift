@@ -1,5 +1,15 @@
 import SwiftUI
 
+/// The menu bar item's view. Scroll events land on the view under the pointer, so this
+/// is where volume scrolling is caught: an app-wide event monitor never sees them.
+final class StatusItemHostingView: NSHostingView<StatusItemView> {
+    var onScroll: ((NSEvent) -> Void)?
+
+    override func scrollWheel(with event: NSEvent) {
+        if let onScroll { onScroll(event) } else { super.scrollWheel(with: event) }
+    }
+}
+
 final class StatusItemConfigurator {
     static func configure(
         statusItem: NSStatusItem,
@@ -8,7 +18,8 @@ final class StatusItemConfigurator {
         musicPlayerPreferencesModel: MusicPlayerPreferencesModel,
         playBackModel: PlaybackModel,
         toggleAction: Selector,
-        target: AnyObject
+        target: AnyObject,
+        onScroll: @escaping (NSEvent) -> Void
     ) {
         let view = StatusItemView(
             model: statusItemModel,
@@ -16,7 +27,8 @@ final class StatusItemConfigurator {
             musicPlayerPreferencesModel: musicPlayerPreferencesModel,
             playbackModel: playBackModel
         )
-        let hostingView = NSHostingView(rootView: view)
+        let hostingView = StatusItemHostingView(rootView: view)
+        hostingView.onScroll = onScroll
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         hostingView.layout()
 

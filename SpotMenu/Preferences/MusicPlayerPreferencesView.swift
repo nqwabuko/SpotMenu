@@ -31,6 +31,22 @@ struct MusicPlayerPreferencesView: View {
                 .formStyle(.grouped)
                 .scrollContentBackground(.hidden)
 
+                Form {
+                    Section {
+                        Toggle("Pause music when a call starts", isOn: $model.pauseDuringCalls)
+                        Toggle("Resume when the call ends", isOn: $model.resumeAfterCalls)
+                            .disabled(!model.pauseDuringCalls)
+                    } header: {
+                        Text("Calls")
+                    } footer: {
+                        Text(
+                            "A call is any app using the microphone or a camera. Music resumes \(Int(CallAutoPause.resumeGrace)) seconds after the call ends, and only if SpotMenu paused it. Press play during a call to keep listening."
+                        )
+                    }
+                }
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)
+
                 if playbackModel.isLikingImplemented {
                     Form {
                         Section {
@@ -175,9 +191,11 @@ struct MusicPlayerPreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     MusicPlayerPreferencesView(
         model: MusicPlayerPreferencesModel(),
         playbackModel: PlaybackModel(preferences: MusicPlayerPreferencesModel())
     )
 }
+#endif

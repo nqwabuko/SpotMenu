@@ -128,6 +128,7 @@ struct PreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     PreferencesView(
         menuBarPreferencesModel: MenuBarPreferencesModel(),
@@ -138,3 +139,4 @@ struct PreferencesView: View {
         playbackAppearancePreferencesModel: PlaybackAppearancePreferencesModel()
     )
 }
+#endif

@@ -7,6 +7,11 @@ class StatusItemModel: ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var isLiked: Bool? = nil
     @Published var playerIconName: String = "SpotifyIcon"
+    /// Music is paused because a call is on; shows a phone in the menu bar.
+    @Published var pausedForCall: Bool = false
+    /// Set while scrolling to change volume: the menu bar shows this level briefly
+    /// instead of the track.
+    @Published var volumeFlash: Int? = nil
 
     struct DisplayOptions {
         let showIcon: Bool

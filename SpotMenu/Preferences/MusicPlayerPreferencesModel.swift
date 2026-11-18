@@ -38,8 +38,25 @@ class MusicPlayerPreferencesModel: ObservableObject {
         }
     }
 
+    @Published var pauseDuringCalls: Bool {
+        didSet {
+            UserDefaults.standard.set(pauseDuringCalls, forKey: "calls.pauseDuringCalls")
+        }
+    }
+
+    @Published var resumeAfterCalls: Bool {
+        didSet {
+            UserDefaults.standard.set(resumeAfterCalls, forKey: "calls.resumeAfterCalls")
+        }
+    }
+
     init() {
         let defaults = UserDefaults.standard
+
+        pauseDuringCalls =
+            defaults.object(forKey: "calls.pauseDuringCalls") as? Bool ?? true
+        resumeAfterCalls =
+            defaults.object(forKey: "calls.resumeAfterCalls") as? Bool ?? true
 
         if let rawValue = defaults.string(
             forKey: "musicPlayer.preferredMusicApp"

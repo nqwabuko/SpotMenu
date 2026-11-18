@@ -12,3 +12,6 @@ website/dist/
 .DS_Store
 
 SpotMenuReleases
+# fork build (make-app.sh)
+.build/
+SpotMenu.app

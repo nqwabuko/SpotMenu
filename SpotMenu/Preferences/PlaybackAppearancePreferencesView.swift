@@ -91,6 +91,7 @@ struct PlaybackAppearancePreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     PlaybackAppearancePreferencesView(
         model: PlaybackAppearancePreferencesModel(),
@@ -98,3 +99,4 @@ struct PlaybackAppearancePreferencesView: View {
         playbackModel: PlaybackModel(preferences: MusicPlayerPreferencesModel())
     )
 }
+#endif

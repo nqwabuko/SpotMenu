@@ -79,9 +79,11 @@ struct ShortcutPreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     ShortcutPreferencesView(
         model: PlaybackModel(preferences: MusicPlayerPreferencesModel()),
         musicPlayerPreferencesModel: MusicPlayerPreferencesModel()
     )
 }
+#endif

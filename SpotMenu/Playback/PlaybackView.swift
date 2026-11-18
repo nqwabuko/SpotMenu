@@ -148,6 +148,31 @@ struct PlaybackView: View {
 
             Spacer(minLength: 0)
 
+            if let volume = model.volume {
+                HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "speaker.fill")
+                        .foregroundColor(preferences.foregroundColor.color)
+                        .help("Volume (or scroll over the menu bar item)")
+                    CustomSlider(
+                        value: Binding(
+                            get: { Double(volume) },
+                            set: { model.setVolume(Int($0.rounded())) }
+                        ),
+                        range: 0...100,
+                        foregroundColor: preferences.foregroundColor.color,
+                        trackColor: preferences.foregroundColor.color
+                    )
+                    .frame(maxWidth: .infinity)
+                    Text("\(volume)")
+                        .font(.body.monospacedDigit())
+                        .foregroundColor(preferences.foregroundColor.color)
+                        .frame(minWidth: 28, alignment: .trailing)
+                }
+                .frame(height: 20)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+
             HStack(alignment: .center) {
 
                 Text(
@@ -249,6 +274,7 @@ struct PlaybackView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     let model = PlaybackModel(preferences: MusicPlayerPreferencesModel())
     model.imageURL = URL(
@@ -262,6 +288,7 @@ struct PlaybackView: View {
         musicPlayerPreferencesModel: MusicPlayerPreferencesModel()
     )
 }
+#endif
 
 @ViewBuilder
 func tappableIconButton(

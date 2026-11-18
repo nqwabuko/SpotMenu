@@ -1,6 +1,7 @@
 import Combine
 import KeyboardShortcuts
 import SwiftUI
+import os
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
@@ -15,11 +16,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var eventMonitor: Any?
     var menuBarPreferencesModelCancellable: AnyCancellable?
     var isUsingCustomStatusView = false
+    var callAutoPause: CallAutoPause!
+    var callAutoPauseCancellable: AnyCancellable?
+    private let volumeLog = Logger(subsystem: "codes.charlie.spotmenu", category: "volume")
+    private var scrollMonitor: Any?
+    private var scrollAccumulator: CGFloat = 0
+    private var hideVolumeFlash: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
         playbackModel = PlaybackModel(preferences: musicPlayerPreferencesModel)
+        callAutoPause = CallAutoPause(
+            playback: playbackModel,
+            preferences: musicPlayerPreferencesModel
+        )
+        callAutoPauseCancellable = callAutoPause.$pausedForCall
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateStatusItem() }
+
+        // macOS 27 doesn't deliver a scroll over a menu bar item to the app that owns
+        // it, so watch scrolls system-wide and keep those whose pointer is over our
+        // item. (On systems that do deliver it, StatusItemHostingView catches it and
+        // a global monitor never sees our own events, so nothing is counted twice.)
+        // Mouse events need no Accessibility permission, unlike keys.
+        scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) {
+            [weak self] event in
+            guard let self, let window = self.statusItem?.button?.window else { return }
+            let pointer = NSEvent.mouseLocation
+            guard window.frame.contains(pointer) else {
+                if let screen = NSScreen.main, pointer.y > screen.frame.maxY - 40 {
+                    self.volumeLog.debug(
+                        "menu bar scroll missed the item: pointer=\(pointer.debugDescription) item=\(window.frame.debugDescription)"
+                    )
+                }
+                return
+            }
+            self.handleVolumeScroll(event)
+        }
 
         // Configure status item and button
         statusItem = NSStatusBar.system.statusItem(
@@ -70,7 +105,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             musicPlayerPreferencesModel: musicPlayerPreferencesModel,
             playBackModel: playbackModel,
             toggleAction: #selector(togglePopover),
-            target: self
+            target: self,
+            onScroll: { [weak self] event in self?.handleVolumeScroll(event) }
         )
 
         setupKeyboardShortcuts()
@@ -146,6 +182,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemModel.isPlaying = playbackModel.isPlaying
         statusItemModel.isLiked = playbackModel.isLiked
         statusItemModel.playerIconName = playbackModel.playerIconName
+        statusItemModel.pausedForCall = callAutoPause?.pausedForCall ?? false
 
         // Update width immediately and synchronously after model changes
         StatusItemConfigurator.updateWidth(
@@ -162,6 +199,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             hostingView.needsLayout = true
             hostingView.layoutSubtreeIfNeeded()
         }
+    }
+
+    /// Scrolling up raises the volume whatever the natural-scrolling setting, like
+    /// the system volume. A mouse wheel moves 5 points a notch; a trackpad moves
+    /// smoothly, 1 point per 4 pixels of travel, ignoring momentum so it stops when
+    /// your fingers stop.
+    private func handleVolumeScroll(_ event: NSEvent) {
+        volumeLog.debug(
+            "scroll dy=\(event.scrollingDeltaY) precise=\(event.hasPreciseScrollingDeltas) volume=\(self.playbackModel.volume ?? -1)"
+        )
+        guard event.momentumPhase.isEmpty else { return }
+        let up =
+            event.isDirectionInvertedFromDevice
+            ? -event.scrollingDeltaY : event.scrollingDeltaY
+
+        let step: Int
+        if event.hasPreciseScrollingDeltas {
+            scrollAccumulator += up
+            let pixelsPerPoint: CGFloat = 4
+            step = Int(scrollAccumulator / pixelsPerPoint)
+            scrollAccumulator -= CGFloat(step) * pixelsPerPoint
+        } else {
+            step = up > 0 ? 5 : (up < 0 ? -5 : 0)
+        }
+        guard step != 0,
+            let level = playbackModel.nudgeVolume(by: step)
+        else { return }
+
+        statusItemModel.volumeFlash = level
+        updateStatusItem()
+        hideVolumeFlash?.cancel()
+        let hide = DispatchWorkItem { [weak self] in
+            self?.statusItemModel.volumeFlash = nil
+            self?.scrollAccumulator = 0
+            self?.updateStatusItem()
+        }
+        hideVolumeFlash = hide
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: hide)
     }
 
     @objc func togglePopover() {

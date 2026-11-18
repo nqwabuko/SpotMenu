@@ -1,4 +1,6 @@
+#if !SPM_BUILD
 import Sparkle
+#endif
 import SwiftUI
 
 struct AboutPreferencesView: View {
@@ -10,11 +12,13 @@ struct AboutPreferencesView: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     }
 
+    #if !SPM_BUILD
     // Sparkle updater (shared instance)
     private var updater: SPUUpdater { UpdaterManager.shared.updater }
     @State private var automaticallyChecksForUpdates = false
     @State private var automaticallyDownloadsUpdates = false
     @State private var lastUpdateCheckDate: Date?
+    #endif
 
     var body: some View {
         ScrollView {
@@ -84,6 +88,7 @@ struct AboutPreferencesView: View {
                 Divider()
                     .padding(.horizontal, 40)
 
+                #if !SPM_BUILD
                 // Software Updates Section
                 VStack(spacing: 12) {
                     Text("Software Updates")
@@ -146,6 +151,7 @@ struct AboutPreferencesView: View {
 
                 Divider()
                     .padding(.horizontal, 40)
+                #endif
 
                 // Links
                 VStack(spacing: 12) {
@@ -188,6 +194,8 @@ struct AboutPreferencesView: View {
     }
 }
 
+#if !SPM_BUILD
 #Preview {
     AboutPreferencesView()
 }
+#endif

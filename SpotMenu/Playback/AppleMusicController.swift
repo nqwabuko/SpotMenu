@@ -6,6 +6,7 @@ class AppleMusicController: MusicPlayerController {
     private var lastArtist: String?
     private var lastTitle: String?
     private var lastImage: NSImage?
+    let appleScriptName = "Music"
 
     func fetchNowPlayingInfo() -> PlaybackInfo? {
         let script = """

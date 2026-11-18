@@ -78,6 +78,37 @@ protocol MusicPlayerController {
     func toggleLiked()
     func likeTrack()
     func unlikeTrack()
+    /// The name AppleScript knows the player by ("Spotify", "Music").
+    var appleScriptName: String { get }
+}
+
+// Spotify and Music share the same AppleScript verbs for these, so one implementation
+// serves both. Each script checks `is running` first: `tell` would otherwise launch the app.
+extension MusicPlayerController {
+    func play() {
+        _ = runAppleScript("tell application \"\(appleScriptName)\" to if it is running then play")
+    }
+
+    func pause() {
+        _ = runAppleScript("tell application \"\(appleScriptName)\" to if it is running then pause")
+    }
+
+    /// The player's own volume, 0...100, or nil when the player isn't running.
+    func volume() -> Int? {
+        let script = """
+            tell application "\(appleScriptName)"
+                if it is running then return sound volume
+            end tell
+            """
+        guard let text = runAppleScript(script) else { return nil }
+        return Int(text)
+    }
+
+    func setVolume(_ percent: Int) {
+        _ = runAppleScript(
+            "tell application \"\(appleScriptName)\" to if it is running then set sound volume to \(percent)"
+        )
+    }
 }
 
 class PlaybackModel: ObservableObject {
@@ -91,8 +122,13 @@ class PlaybackModel: ObservableObject {
     @Published var playerType: PlayerType
     @Published var isLiked: Bool? = nil
     @Published var longFormInfo: LongFormInfo? = nil
+    /// The player's volume, 0...100; nil when the player isn't running.
+    @Published var volume: Int? = nil
 
     private let preferences: MusicPlayerPreferencesModel
+    /// After we set the volume, polls keep our value until this time, so a poll that
+    /// raced the change doesn't snap the slider back.
+    private var volumeHeldUntil = Date.distantPast
     private var controller: MusicPlayerController
     private var timer: Timer?
 
@@ -188,8 +224,12 @@ class PlaybackModel: ObservableObject {
         }
 
         let displayText = computeDisplayText(from: info)
+        let polledVolume = controller.volume()
 
         DispatchQueue.main.async {
+            if Date() >= self.volumeHeldUntil {
+                self.volume = polledVolume
+            }
             self.title = displayText.title
             self.artist = displayText.artist
             self.isPlaying = info.isPlaying
@@ -218,6 +258,38 @@ class PlaybackModel: ObservableObject {
         }
         
         delayedFetch()
+    }
+
+    /// Explicit play/pause (not toggles) for the call watcher, which must never flip
+    /// the state the wrong way if a poll is stale.
+    func play() {
+        controller.play()
+        isPlaying = true
+        notifyModelUpdate()
+        delayedFetch()
+    }
+
+    func pause() {
+        controller.pause()
+        isPlaying = false
+        notifyModelUpdate()
+        delayedFetch()
+    }
+
+    func setVolume(_ percent: Int) {
+        let clamped = max(0, min(100, percent))
+        volume = clamped
+        volumeHeldUntil = Date().addingTimeInterval(1.5)
+        controller.setVolume(clamped)
+    }
+
+    /// Moves the volume by `delta` points; returns the new level, or nil when the
+    /// player isn't running.
+    @discardableResult
+    func nudgeVolume(by delta: Int) -> Int? {
+        guard let current = volume ?? controller.volume() else { return nil }
+        setVolume(current + delta)
+        return volume
     }
 
     func skipForward() {
@@ -297,6 +369,7 @@ class PlaybackModel: ObservableObject {
             self.totalTime = 1
             self.image = nil
             self.longFormInfo = nil
+            self.volume = nil
         }
     }
 

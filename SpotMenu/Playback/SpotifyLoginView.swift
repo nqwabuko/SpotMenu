@@ -398,6 +398,8 @@ extension Color {
     )
 }
 
+#if !SPM_BUILD
 #Preview {
     SpotifyLoginView(preferences: MusicPlayerPreferencesModel())
 }
+#endif

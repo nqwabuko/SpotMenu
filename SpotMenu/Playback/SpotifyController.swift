@@ -10,6 +10,7 @@ class SpotifyController: MusicPlayerController {
     private var pendingLongFormFetches = Set<String>()
 
     private let preferences: MusicPlayerPreferencesModel
+    let appleScriptName = "Spotify"
 
     init(preferences: MusicPlayerPreferencesModel) {
         self.preferences = preferences
