@@ -8,6 +8,38 @@ A minimalist menu bar utility that displays your currently playing track with pl
 
 ---
 
+## This fork
+
+A personal fork of [kmikiy/SpotMenu](https://github.com/kmikiy/SpotMenu). The work lives on the `charlie` branch; `master` tracks upstream.
+
+**What it adds**
+
+- **Pause during calls.** Any app using the mic or a camera counts as a call. Playing music pauses and a phone icon shows in the menu bar. It resumes 5 seconds after the call ends, and only if SpotMenu paused it. Press play mid-call to keep listening. Toggles under Settings → Music Player → Calls.
+- **Volume.** Scroll over the menu bar item (up is louder); the level shows in the menu bar while you scroll. There is also a slider in the popover.
+
+**Build and install** (Command Line Tools only, no Xcode)
+
+```bash
+./make-app.sh --install
+```
+
+This builds an ad-hoc signed, sandboxed app with its own bundle id (`codes.charlie.spotmenu`) into `~/Applications/SpotMenu.app` and launches it. Sparkle is left out, so the fork never updates itself back to upstream. The script picks the newest SDK that can compile SwiftUI (CLT 27's default SDK can't), and KeyboardShortcuts 2.3.0 is vendored in `Vendor/` without its `#Preview` blocks, which the Command Line Tools can't expand.
+
+**Pull in upstream changes**
+
+```bash
+git fetch upstream
+git switch charlie
+git merge upstream/master
+./make-app.sh --install
+```
+
+**Testing calls:** play something, then open Photo Booth. The music should pause; quit Photo Booth and it comes back about 5 seconds later.
+
+**macOS 27 note:** scrolls over a menu bar item never reach the app that owns it, so volume scrolling uses a system-wide scroll monitor that checks the pointer is over the item.
+
+---
+
 ## Features
 
 - **Menu Bar Integration** — View artist and song title directly in your menu bar
